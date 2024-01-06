@@ -1,0 +1,311 @@
+/* header */
+header {
+    /* background-color:rgb(173, 216, 230); */
+    background-color:transparent;
+    padding:5px 0;
+    background-image:url(./pages/images/top-ribbon-bg.jpg);
+    background-size:cover;
+    background-position: 50% 90%; /*_ 77.5*/
+    background-repeat:no-repeat;
+}
+
+.top-ribbon {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    /* max-width:1200px; */
+    margin:0 auto;
+    font-size:1vh;
+}
+
+    .top-ribbon h1 {
+        color:black;
+        font-size:4.5em;
+        margin-left:15px;
+        margin-block-start: 1vh;
+        margin-block-end: 1.5vh;
+    }
+
+/* unordered list of links in ribbon */
+.dropdown-list ul {
+    list-style:none;
+    display: flex;
+    margin:0;
+    padding:0;
+}
+
+/* links in ribbon */
+.dropdown-list li { /* tab */
+    list-style:none;
+    margin-right:20px;
+}
+
+.dropdown-list a { /* hyper-link */
+    text-decoration:none;
+    /* color:white; */
+    color:#fff8e8;
+    font-size:2em;
+    transition: text-shadow .5s, color 1ms, text-decoration 3.15s;
+}
+
+    .dropdown-list a:hover { /*when mouse hovers*/
+        /* color:rgb(102, 102, 102); */
+        color:#444;
+        text-shadow: 0 0 1px gray;
+        text-decoration:underline;
+    }
+
+    .dropdown-list a:active { /* active page */
+        color:black;
+        text-shadow: 0 0 2px gray;
+        text-decoration:none;
+    }
+
+.dropdown-tab {
+    box-sizing:border-box;
+    position:relative; /* important for dropdown? */
+    /* display:inline-block; */
+    margin:0;
+    padding:0;
+}
+
+    .dropdown-tab:hover .dropdown-content {
+        display:block;
+    }
+
+.dropdown-content {
+    box-sizing: border-box;
+    display:none;
+    position:absolute;
+    background-color:rgba(173, 216, 230,0.9);
+    z-index:1;
+    width:auto;
+    top:100%;
+    left:0;
+    padding:5px 10px;
+    white-space:nowrap;
+}
+
+.dropdown-content a {
+    text-decoration:none;
+    display:block;
+    transition: text-shadow .5s, color 1ms, text-decoration 3.15s;
+}
+
+    /* .dropdown-content a:hover {
+        color:darkgray;
+        text-shadow: 0 0 1px darkgray;
+        text-decoration:underline;
+    } */
+
+/* bodies of pages*/
+/* home body */
+.home {
+    margin:0;
+    display:grid;
+    grid-template-rows: 1fr auto;
+    font-size:1vh;
+}
+
+    .home .grid-container {
+        margin: 0 0 0 15px;
+    }
+
+    .home .grid-container h1 {
+        font-size:3em;
+    }
+
+    .home .grid-container h2 {
+        font-size:2em;
+    }
+
+    .home .grid-container h3 {
+        font-size:1em;
+    }
+
+    /* .home .grid-container h1 {
+    } */
+/* portfolio body */
+.portfolio {
+    margin:0;
+    display:grid;
+    grid-template-rows: 1fr auto;
+    font-size:1vh;
+}
+
+    .portfolio .grid-container {
+        margin: 0 0 0 15px;
+    }
+
+    .portfolio .grid-container h1 {
+        font-size:3em;
+        font-weight:bold;
+        margin-block-start: 20px;
+        margin-block-end: 0px;
+    }
+
+    .portfolio .grid-container h2 {
+        font-size:1.3em;
+        font-weight:normal;
+        margin-left: 3px;
+        margin-block-start: 1px;
+        margin-block-end: 20px;
+    }
+
+    .portfolio .grid-container img {
+        height:9em;
+        width:auto;
+    }
+
+    .portfolio .grid-container #DermAI{
+        height:7em;
+        width:auto;
+    }
+
+
+footer {
+    background-color:lightgray;
+    font-size:1vh;
+}
+
+    footer h1 {
+        text-align:left;
+        padding:5px 0 10px 20px;
+        margin:0;
+    }
+
+    footer .contact-info {
+        display:flex;
+        margin:0 auto;
+    }
+    footer .contact-info .column {
+        display:flex;
+        flex:1;
+        flex-direction:column;
+        /* margin:0 auto;
+        padding:5px; */
+        max-width: 400px;
+
+        border: 1px solid #ccc;
+        box-sizing:border-box;
+    }
+
+    footer .contact-info .hyperlink {
+        display:flex;
+        align-items:center;
+        margin:10px;
+        text-decoration:none;
+        width:fit-content;
+    }
+
+    footer .contact-info img {
+        height:2em;
+        width:auto;
+        margin-right:10px;
+        color:blue;
+    }
+
+    footer .contact-info p {
+        color:blue;
+        font-size:1.2em;
+        margin: 10px 0;
+    }
+
+
+
+    footer .feedback {
+        position:relative;
+        display:inline-block;
+    }
+
+    footer .feedback input {
+        /* position:absolute; */
+        /* border: 1px solid #ccc; */
+        /* max-height:150px; */
+        overflow-y:auto;
+        z-index:1;
+        width:100%;
+        padding:10px; /* adjust */
+        margin-bottom: 10px;
+    }
+
+    footer .feedback button {
+        padding:10px;
+        /* background: color #007bff; */
+        /* color:#fff; */
+        border:none;
+        cursor:pointer;
+    }
+
+    footer .feedback-list {
+        margin-top:20px;
+    }
+
+
+
+    footer #copyright {
+        padding:12px;
+    }
+
+/* media compatibility for different devices*/
+/* max height for computer*/
+@media (max-height: 1000px) {
+    /* header */
+    header .top-ribbon h1 {
+        font-size:45px;
+        margin-block-start: 10px;
+        margin-block-end: 15px;
+        color:red;
+    }
+
+    header .dropdown-list a {
+        font-size:20px;
+        color:red;
+    }
+
+
+    /* body */
+    body .grid-container h1 {
+        font-size:30px;
+        color:purple;
+    }
+
+    body .grid-container h2 {
+        font-size:13px;
+        color:purple;
+    }
+
+    body .grid-container img {
+        height:90px;
+        outline: 2px solid purple;
+    }
+
+    body .grid-container img {
+        height:90px;
+        outline: 2px solid purple;
+    }
+
+    body .grid-container #DermAI {
+        height:70px;
+        outline: 2px solid purple;
+    }
+
+
+    /* footer */
+    footer h1 {
+        font-size:20px;
+        color:hotpink;
+    }
+
+    footer .contact-info img {
+        height:20px;
+        width:auto;
+        outline:2px solid hotpink;
+    }
+
+    footer .contact-info p {
+        font-size:12px;
+        color:hotpink;
+    }
+}
+
