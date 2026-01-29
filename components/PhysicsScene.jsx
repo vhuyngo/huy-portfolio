@@ -1,14 +1,16 @@
-import React, {useEffect, useRef, useState} from 'react'
+import React, {useEffect, useRef, useState, useCallback} from 'react'
 
 // Real-time DOM-physics sync: actual page elements move with physics simulation  
 export default function PhysicsScene({enabled, onToggle}){
   const matterRef = useRef(null)
   const engineRef = useRef(null)
   const runnerRef = useRef(null)
+  const mouseConstraintRef = useRef(null)
   const elementsRef = useRef([])
   const originalPositionsRef = useRef([])
   const wallsRef = useRef([])
   const hiddenSectionsRef = useRef([])
+  const activeBodyRef = useRef(null)
   const [gravityEnabled, setGravityEnabled] = useState(false)
   const [explodeMode, setExplodeMode] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
@@ -20,10 +22,10 @@ export default function PhysicsScene({enabled, onToggle}){
     let mounted = true
     let animationFrame
     let clickHandler = null
+    let scrollHandler = null
 
     // Add blur overlay effect for sandbox mode
     const createBlurOverlay = () => {
-      // Remove existing overlay if present
       const existingOverlay = document.getElementById('physics-blur-overlay')
       if(existingOverlay) existingOverlay.remove()
       
@@ -52,33 +54,30 @@ export default function PhysicsScene({enabled, onToggle}){
       matterRef.current = Matter
       if(!mounted) return
       
-      const {Engine, World, Bodies, Body, Events, Mouse, MouseConstraint} = Matter
+      const {Engine, World, Bodies, Body, Events, Mouse, MouseConstraint, Sleeping} = Matter
+      
+      // Create engine with no gravity initially
       const engine = Engine.create({
-        gravity: { x: 0, y: gravityEnabled ? 3.5 : 0 },
+        gravity: { x: 0, y: 0 },
         timing: {
-          timeScale: 1,
-          isFixed: false
+          timeScale: 1
         },
-        positionIterations: 6,
-        velocityIterations: 4,
-        constraintIterations: 2
+        positionIterations: 10,
+        velocityIterations: 8,
+        constraintIterations: 4
       })
       engineRef.current = engine
       
-      // Configure collision detection based on state
-      if(!collisionEnabled) {
-        engine.world.gravity.scale = 0
-      }
+      // Enable sleeping for performance
+      engine.enableSleeping = true
 
-      // Find all interactive elements - ONLY individual cards, not sections
+      // Find all interactive elements
       const portfolioItems = Array.from(document.querySelectorAll('.portfolio-item'))
       const hobbyItems = Array.from(document.querySelectorAll('.hobby-item'))
       
-      // Hide section TITLES (h2) during physics mode, keep sections visible to maintain page size
+      // Hide section titles and grids
       const projectsSection = document.querySelector('#projects')
       const hobbiesSection = document.querySelector('#hobbies')
-      
-      // Find and hide only the h2 titles and grid containers within sections
       const elementsToHide = []
       
       if(projectsSection) {
@@ -95,21 +94,20 @@ export default function PhysicsScene({enabled, onToggle}){
         if(hobbiesGrid) elementsToHide.push(hobbiesGrid)
       }
       
-      // Store original visibility states
       hiddenSectionsRef.current = elementsToHide.map(element => ({
-        element: element,
+        element,
         originalVisibility: element.style.visibility || '',
         originalPointerEvents: element.style.pointerEvents || ''
       }))
       
-      // Hide elements with visibility:hidden to maintain document space
       elementsToHide.forEach(element => {
         element.style.visibility = 'hidden'
         element.style.pointerEvents = 'none'
       })
       
-      // Only work with individual cards
       const interactiveElements = [...portfolioItems, ...hobbyItems]
+      const navbarElement = document.querySelector('header')
+      const footerElement = document.querySelector('footer')
 
       // Store original positions and create physics bodies
       const bodiesData = interactiveElements.map((el, i) => {
@@ -118,11 +116,8 @@ export default function PhysicsScene({enabled, onToggle}){
         const scrollY = window.scrollY
         const computedStyle = window.getComputedStyle(el)
         
-        // Store original computed dimensions (accounts for padding, border)
         const visualWidth = rect.width
         const visualHeight = rect.height
-        
-        // Calculate exact absolute position in document
         const absoluteLeft = rect.left + scrollX
         const absoluteTop = rect.top + scrollY
         
@@ -134,7 +129,6 @@ export default function PhysicsScene({enabled, onToggle}){
         placeholder.className = 'physics-placeholder'
         el.parentNode.insertBefore(placeholder, el)
         
-        // Store original state for restoration
         const originalPos = {
           x: absoluteLeft,
           y: absoluteTop,
@@ -146,11 +140,11 @@ export default function PhysicsScene({enabled, onToggle}){
           transform: el.style.transform,
           margin: el.style.margin,
           zIndex: el.style.zIndex,
-          placeholder: placeholder
+          placeholder
         }
         originalPositionsRef.current.push(originalPos)
 
-        // Make element position: absolute at EXACT current position
+        // Make element absolutely positioned
         el.style.position = 'absolute'
         el.style.left = absoluteLeft + 'px'
         el.style.top = absoluteTop + 'px'
@@ -164,49 +158,58 @@ export default function PhysicsScene({enabled, onToggle}){
         el.style.transformOrigin = 'center center'
         el.style.transform = 'rotate(0rad)'
 
-        // Create physics body at exact center with precise dimensions
+        // Create physics body - START AS SLEEPING so objects don't move
         const body = Bodies.rectangle(
           absoluteLeft + visualWidth / 2,
           absoluteTop + visualHeight / 2,
           visualWidth,
           visualHeight,
           { 
-            restitution: 0.2,
-            friction: 0.8,
-            frictionAir: 0.06,
-            frictionStatic: 0.5,
-            density: 0.001,
-            slop: 0.05,
+            restitution: 0.3,
+            friction: 0.6,
+            frictionAir: 0.05,
+            frictionStatic: 0.8,
+            density: 0.002,
+            slop: 0.01,
             isSensor: !collisionEnabled,
+            // Start sleeping - objects won't move until interacted with
+            isSleeping: true,
+            sleepThreshold: 60,
             collisionFilter: {
               group: 0,
               category: 0x0001,
               mask: collisionEnabled ? 0xFFFF : 0x0002
-            }
+            },
+            label: `element-${i}`
           }
         )
+        
+        // Ensure zero velocity
+        Body.setVelocity(body, { x: 0, y: 0 })
+        Body.setAngularVelocity(body, 0)
 
-        return { element: el, body, index: i, originalScrollY: absoluteTop }
+        return { 
+          element: el, 
+          body, 
+          index: i, 
+          isInWorld: true,
+          wasInteracted: false
+        }
       })
 
       elementsRef.current = bodiesData
       const bodies = bodiesData.map(d => d.body)
 
-      // Add boundaries (invisible walls) - these will be updated on scroll
+      // Create boundary walls
       const thickness = 100
       const viewWidth = window.innerWidth
-      const viewHeight = document.documentElement.scrollHeight
+      const docHeight = document.documentElement.scrollHeight
       
-      // Get navbar and footer positions for hitboxes
-      const navbarElement = document.querySelector('header')
-      const footerElement = document.querySelector('footer')
-      
-      let navbarBottom = 80 // default
-      let footerTop = viewHeight - 100 // default
+      let navbarBottom = 80
+      let footerTop = docHeight - 100
       
       if(navbarElement){
-        const navbarHeight = navbarElement.offsetHeight
-        navbarBottom = navbarHeight
+        navbarBottom = navbarElement.offsetHeight
       }
       
       if(footerElement){
@@ -214,56 +217,35 @@ export default function PhysicsScene({enabled, onToggle}){
         footerTop = window.scrollY + footerRect.top
       }
       
-      // Create walls that will track scroll position
-      // Top wall (tracks with scroll + navbar height)
-      const topWall = Bodies.rectangle(viewWidth/2, window.scrollY + navbarBottom, viewWidth * 2, thickness, { 
+      const wallOptions = { 
         isStatic: true,
-        label: 'topWall',
         friction: 0.8,
-        restitution: 0.1,
+        restitution: 0.2,
         collisionFilter: {
           group: 0,
           category: 0x0002,
           mask: 0xFFFF
         }
+      }
+      
+      const topWall = Bodies.rectangle(viewWidth/2, window.scrollY + navbarBottom - thickness/2, viewWidth * 3, thickness, {
+        ...wallOptions,
+        label: 'topWall'
       })
       
-      // Bottom wall (footer position in absolute coordinates)
-      const bottomWall = Bodies.rectangle(viewWidth/2, footerTop, viewWidth * 2, thickness, { 
-        isStatic: true,
-        label: 'bottomWall',
-        friction: 0.8,
-        restitution: 0.1,
-        collisionFilter: {
-          group: 0,
-          category: 0x0002,
-          mask: 0xFFFF
-        }
+      const bottomWall = Bodies.rectangle(viewWidth/2, footerTop + thickness/2, viewWidth * 3, thickness, {
+        ...wallOptions,
+        label: 'bottomWall'
       })
       
-      // Side walls (very tall to cover entire scrollable area)
-      const leftWall = Bodies.rectangle(-thickness/2, viewHeight/2, thickness, viewHeight*4, { 
-        isStatic: true,
-        label: 'leftWall',
-        friction: 0.8,
-        restitution: 0.1,
-        collisionFilter: {
-          group: 0,
-          category: 0x0002,
-          mask: 0xFFFF
-        }
+      const leftWall = Bodies.rectangle(-thickness/2, docHeight/2, thickness, docHeight * 3, {
+        ...wallOptions,
+        label: 'leftWall'
       })
       
-      const rightWall = Bodies.rectangle(viewWidth + thickness/2, viewHeight/2, thickness, viewHeight*4, { 
-        isStatic: true,
-        label: 'rightWall',
-        friction: 0.8,
-        restitution: 0.1,
-        collisionFilter: {
-          group: 0,
-          category: 0x0002,
-          mask: 0xFFFF
-        }
+      const rightWall = Bodies.rectangle(viewWidth + thickness/2, docHeight/2, thickness, docHeight * 3, {
+        ...wallOptions,
+        label: 'rightWall'
       })
       
       const walls = [topWall, bottomWall, leftWall, rightWall]
@@ -271,98 +253,164 @@ export default function PhysicsScene({enabled, onToggle}){
 
       World.add(engine.world, [...bodies, ...walls])
       
-      // Update wall positions on scroll to keep physics contained
-      let scrollUpdateFrame = null
+      // Update walls on scroll
       const updateWallsOnScroll = () => {
         if(!engineRef.current || !matterRef.current || !mounted) return
         
         const currentScrollY = window.scrollY
-        const viewportHeight = window.innerHeight
-        
-        // Update top wall to follow viewport top + navbar height
         const navbarHeight = navbarElement ? navbarElement.offsetHeight : 80
-        const newTopY = currentScrollY + navbarHeight
-        matterRef.current.Body.setPosition(wallsRef.current[0], { 
+        
+        // Update top wall
+        Body.setPosition(wallsRef.current[0], { 
           x: viewWidth/2, 
-          y: newTopY 
+          y: currentScrollY + navbarHeight - thickness/2
         })
         
-        // Bottom wall stays at footer position (absolute)
-        const footerRect = footerElement ? footerElement.getBoundingClientRect() : null
-        if(footerRect) {
-          const newBottomY = currentScrollY + footerRect.top
-          matterRef.current.Body.setPosition(wallsRef.current[1], { 
+        // Update bottom wall
+        if(footerElement) {
+          const footerRect = footerElement.getBoundingClientRect()
+          Body.setPosition(wallsRef.current[1], { 
             x: viewWidth/2, 
-            y: newBottomY 
+            y: currentScrollY + footerRect.top + thickness/2
           })
         }
-        
-        scrollUpdateFrame = null
       }
       
-      const handleScroll = () => {
-        if(!scrollUpdateFrame) {
-          scrollUpdateFrame = requestAnimationFrame(updateWallsOnScroll)
+      // Viewport-based body management
+      const updateViewportBodies = () => {
+        if(!mounted || !matterRef.current || !engineRef.current) return
+        
+        const currentScrollY = window.scrollY
+        const viewportHeight = window.innerHeight
+        const buffer = viewportHeight * 0.5 // Load bodies slightly before they enter viewport
+        const viewportTop = currentScrollY - buffer
+        const viewportBottom = currentScrollY + viewportHeight + buffer
+        
+        elementsRef.current.forEach((data) => {
+          const { body, element, isInWorld } = data
+          const original = originalPositionsRef.current[data.index]
+          
+          // Use CURRENT body position to determine visibility
+          const bodyY = body.position.y
+          const bodyTop = bodyY - original.height / 2
+          const bodyBottom = bodyY + original.height / 2
+          
+          const isInViewport = bodyBottom >= viewportTop && bodyTop <= viewportBottom
+          
+          if(isInViewport && !isInWorld) {
+            // Add body back to world
+            World.add(engineRef.current.world, body)
+            data.isInWorld = true
+            element.style.display = ''
+          } else if(!isInViewport && isInWorld && !activeBodyRef.current) {
+            // Remove body from world (but only if not being dragged)
+            // Don't remove if object is being dragged
+            if(body !== activeBodyRef.current) {
+              World.remove(engineRef.current.world, body)
+              data.isInWorld = false
+              element.style.display = 'none'
+            }
+          }
+        })
+      }
+      
+      let scrollFrame = null
+      scrollHandler = () => {
+        if(!scrollFrame) {
+          scrollFrame = requestAnimationFrame(() => {
+            updateWallsOnScroll()
+            updateViewportBodies()
+            scrollFrame = null
+          })
         }
       }
       
-      window.addEventListener('scroll', handleScroll, { passive: true })
-      
-      // Initial wall position update
+      window.addEventListener('scroll', scrollHandler, { passive: true })
       updateWallsOnScroll()
-      
-      // Store cleanup function
-      const scrollCleanup = () => {
-        window.removeEventListener('scroll', handleScroll)
-        if(scrollUpdateFrame) cancelAnimationFrame(scrollUpdateFrame)
-      }
 
-      // Mouse constraint for dragging
+      // Mouse constraint for dragging - with better configuration
       const mouse = Mouse.create(document.body)
+      
+      // Fix mouse wheel scrolling issue
+      mouse.element.removeEventListener('mousewheel', mouse.mousewheel)
+      mouse.element.removeEventListener('DOMMouseScroll', mouse.mousewheel)
+      
       const mouseConstraint = MouseConstraint.create(engine, {
         mouse,
         constraint: {
-          stiffness: 0.2,
+          stiffness: 0.6,
+          damping: 0.3,
+          angularStiffness: 0.3,
           render: { visible: false }
         }
       })
+      mouseConstraintRef.current = mouseConstraint
       World.add(engine.world, mouseConstraint)
 
-      // Update cursor on drag
-      Events.on(mouseConstraint, 'startdrag', () => {
-        document.body.style.cursor = 'grabbing'
+      // When dragging starts, wake the body and mark as interacted
+      Events.on(mouseConstraint, 'startdrag', (event) => {
+        const body = event.body
+        if(body) {
+          activeBodyRef.current = body
+          Sleeping.set(body, false)
+          document.body.style.cursor = 'grabbing'
+          
+          // Mark this element as interacted
+          const elementData = elementsRef.current.find(d => d.body === body)
+          if(elementData) {
+            elementData.wasInteracted = true
+          }
+        }
       })
-      Events.on(mouseConstraint, 'enddrag', () => {
+      
+      Events.on(mouseConstraint, 'enddrag', (event) => {
+        activeBodyRef.current = null
         document.body.style.cursor = 'default'
+        
+        // Apply some damping after release for smoother feel
+        const body = event.body
+        if(body && matterRef.current) {
+          const currentVel = body.velocity
+          // Cap maximum throw velocity for better UX
+          const maxVel = 30
+          const velMag = Math.sqrt(currentVel.x * currentVel.x + currentVel.y * currentVel.y)
+          if(velMag > maxVel) {
+            const scale = maxVel / velMag
+            Body.setVelocity(body, {
+              x: currentVel.x * scale,
+              y: currentVel.y * scale
+            })
+          }
+        }
       })
 
-      // Add click handler for explosion effect
+      // Explosion click handler
       const handleClick = (e) => {
         if(!engineRef.current || !matterRef.current || !explodeMode) return
         
-        // Get click position
         const clickX = e.clientX + window.scrollX
         const clickY = e.clientY + window.scrollY
         
-        // Create visual indicator
+        // Visual effect
         const indicator = document.createElement('div')
-        indicator.style.position = 'absolute'
-        indicator.style.left = e.clientX + 'px'
-        indicator.style.top = e.clientY + 'px'
-        indicator.style.width = '60px'
-        indicator.style.height = '60px'
-        indicator.style.marginLeft = '-30px'
-        indicator.style.marginTop = '-30px'
-        indicator.style.borderRadius = '50%'
-        indicator.style.border = '3px solid rgba(249,115,22,0.9)'
-        indicator.style.background = 'radial-gradient(circle, rgba(251,146,60,0.3) 0%, transparent 70%)'
-        indicator.style.boxShadow = '0 0 30px rgba(249,115,22,0.8), 0 0 60px rgba(234,88,12,0.4), inset 0 0 20px rgba(251,146,60,0.4)'
-        indicator.style.zIndex = '9998'
-        indicator.style.pointerEvents = 'none'
-        indicator.style.animation = 'explode-pulse 0.6s ease-out'
+        indicator.style.cssText = `
+          position: absolute;
+          left: ${e.clientX}px;
+          top: ${e.clientY}px;
+          width: 60px;
+          height: 60px;
+          margin-left: -30px;
+          margin-top: -30px;
+          border-radius: 50%;
+          border: 3px solid rgba(249,115,22,0.9);
+          background: radial-gradient(circle, rgba(251,146,60,0.3) 0%, transparent 70%);
+          box-shadow: 0 0 30px rgba(249,115,22,0.8), 0 0 60px rgba(234,88,12,0.4);
+          z-index: 9998;
+          pointer-events: none;
+          animation: explode-pulse 0.6s ease-out forwards;
+        `
         document.body.appendChild(indicator)
         
-        // Add CSS animation if not already added
         if(!document.getElementById('explode-animation')){
           const style = document.createElement('style')
           style.id = 'explode-animation'
@@ -376,21 +424,21 @@ export default function PhysicsScene({enabled, onToggle}){
           document.head.appendChild(style)
         }
         
-        // Remove indicator after animation
         setTimeout(() => indicator.remove(), 600)
         
-        // Apply explosion force
-        elementsRef.current.forEach(({body}) => {
-          if(body){
+        // Apply explosion force and wake all bodies
+        elementsRef.current.forEach(({body, isInWorld}) => {
+          if(body && isInWorld){
+            Sleeping.set(body, false)
             const dx = body.position.x - clickX
             const dy = body.position.y - clickY
             const distance = Math.sqrt(dx * dx + dy * dy)
             
-            if(distance > 0){
-              const explosionStrength = 25
+            if(distance > 0 && distance < 800){
+              const explosionStrength = 0.8 * (1 - distance / 800)
               const forceX = (dx / distance) * explosionStrength
               const forceY = (dy / distance) * explosionStrength
-              matterRef.current.Body.applyForce(body, body.position, {x: forceX, y: forceY})
+              Body.applyForce(body, body.position, {x: forceX, y: forceY})
             }
           }
         })
@@ -400,87 +448,84 @@ export default function PhysicsScene({enabled, onToggle}){
       document.addEventListener('click', handleClick)
 
       // Run physics engine
-      const runner = Matter.Runner.create()
+      const runner = Matter.Runner.create({
+        delta: 1000 / 60,
+        isFixed: true
+      })
       runnerRef.current = runner
       Matter.Runner.run(runner, engine)
 
-      // Add physics-active class to body for blur effect
       document.body.classList.add('physics-active')
 
-      // Sync DOM elements with physics bodies every frame with smoothing
-      function syncDOMWithPhysics(){
+      // Sync DOM with physics
+      const syncDOMWithPhysics = () => {
         if(!mounted) return
         
-        // Get current scroll position and boundaries
         const currentScrollY = window.scrollY
         const viewportHeight = window.innerHeight
-        const headerBottom = navbarElement ? navbarElement.offsetHeight : 80
+        const navbarHeight = navbarElement ? navbarElement.offsetHeight : 80
         const footerRect = footerElement ? footerElement.getBoundingClientRect() : null
-        const footerTop = footerRect ? (currentScrollY + footerRect.top) : (document.documentElement.scrollHeight - 200)
+        const footerTopAbs = footerRect ? (currentScrollY + footerRect.top) : (document.documentElement.scrollHeight - 200)
         
-        elementsRef.current.forEach(({element, body, originalScrollY}, i) => {
+        elementsRef.current.forEach(({element, body, isInWorld}, i) => {
+          if(!isInWorld) return
+          
           const {x, y} = body.position
           const angle = body.angle
-          
           const original = originalPositionsRef.current[i]
           
-          // Calculate top-left position from body center (body center - half width/height)
+          // Calculate element position from body center
           let left = x - original.width / 2
           let top = y - original.height / 2
           
-          // Constrain elements to stay within header (bottom) and footer (top) boundaries
-          const minTop = headerBottom
-          const maxTop = footerTop - original.height
+          // Boundary constraints
+          const minTop = navbarHeight + 5
+          const maxTop = footerTopAbs - original.height - 5
+          const minLeft = 5
+          const maxLeft = window.innerWidth - original.width - 5
           
-          // Prevent elements from going above header or below footer
+          let needsCorrection = false
+          let newX = x
+          let newY = y
+          
           if(top < minTop) {
             top = minTop
-            // Also update physics body position to match
-            if(matterRef.current) {
-              matterRef.current.Body.setPosition(body, {
-                x: body.position.x,
-                y: minTop + original.height / 2
-              })
-              // Remove upward velocity
-              if(body.velocity.y < 0) {
-                matterRef.current.Body.setVelocity(body, {x: body.velocity.x, y: 0})
-              }
-            }
+            newY = minTop + original.height / 2
+            needsCorrection = true
           }
-          
           if(top > maxTop) {
             top = maxTop
-            // Also update physics body position to match
-            if(matterRef.current) {
-              matterRef.current.Body.setPosition(body, {
-                x: body.position.x,
-                y: maxTop + original.height / 2
-              })
-              // Remove downward velocity
-              if(body.velocity.y > 0) {
-                matterRef.current.Body.setVelocity(body, {x: body.velocity.x, y: 0})
-              }
+            newY = maxTop + original.height / 2
+            needsCorrection = true
+          }
+          if(left < minLeft) {
+            left = minLeft
+            newX = minLeft + original.width / 2
+            needsCorrection = true
+          }
+          if(left > maxLeft) {
+            left = maxLeft
+            newX = maxLeft + original.width / 2
+            needsCorrection = true
+          }
+          
+          // Correct physics body if out of bounds
+          if(needsCorrection && matterRef.current) {
+            Body.setPosition(body, { x: newX, y: newY })
+            // Dampen velocity when hitting bounds
+            const vel = body.velocity
+            if((top <= minTop && vel.y < 0) || (top >= maxTop && vel.y > 0)) {
+              Body.setVelocity(body, { x: vel.x * 0.5, y: -vel.y * 0.3 })
+            }
+            if((left <= minLeft && vel.x < 0) || (left >= maxLeft && vel.x > 0)) {
+              Body.setVelocity(body, { x: -vel.x * 0.3, y: vel.y * 0.5 })
             }
           }
           
-          const rotation = angle
-          
-          // Check if element is near current viewport with generous buffer
-          const viewportBuffer = viewportHeight * 1.5
-          const isNearViewport = originalScrollY >= (currentScrollY - viewportBuffer) && 
-                                  originalScrollY <= (currentScrollY + viewportHeight + viewportBuffer)
-          
-          // Show/hide element based on proximity to viewport
-          if(isNearViewport) {
-            element.style.display = ''
-            element.style.left = Math.round(left) + 'px'
-            element.style.top = Math.round(top) + 'px'
-            element.style.transform = `rotate(${rotation}rad)`
-            element.style.transformOrigin = 'center center'
-            element.style.willChange = 'transform, top, left'
-          } else {
-            element.style.display = 'none'
-          }
+          // Update DOM element
+          element.style.left = `${Math.round(left)}px`
+          element.style.top = `${Math.round(top)}px`
+          element.style.transform = `rotate(${angle}rad)`
         })
 
         animationFrame = requestAnimationFrame(syncDOMWithPhysics)
@@ -494,17 +539,14 @@ export default function PhysicsScene({enabled, onToggle}){
       mounted = false
       if(animationFrame) cancelAnimationFrame(animationFrame)
       
-      // Remove click handler
-      if(clickHandler) {
-        document.removeEventListener('click', clickHandler)
-      }
+      if(clickHandler) document.removeEventListener('click', clickHandler)
+      if(scrollHandler) window.removeEventListener('scroll', scrollHandler)
       
-      // Remove physics-active class and blur overlay
       document.body.classList.remove('physics-active')
       const blurOverlay = document.getElementById('physics-blur-overlay')
       if(blurOverlay) blurOverlay.remove()
       
-      // Restore hidden elements (titles and grids)
+      // Restore hidden elements
       hiddenSectionsRef.current.forEach(({element, originalVisibility, originalPointerEvents}) => {
         if(element) {
           element.style.visibility = originalVisibility || ''
@@ -513,7 +555,7 @@ export default function PhysicsScene({enabled, onToggle}){
       })
       hiddenSectionsRef.current = []
       
-      // Restore elements to original state
+      // Restore DOM elements
       elementsRef.current.forEach(({element}, i) => {
         const original = originalPositionsRef.current[i]
         if(original && element){
@@ -529,11 +571,9 @@ export default function PhysicsScene({enabled, onToggle}){
           element.style.transition = ''
           element.style.transformOrigin = ''
           element.style.boxSizing = ''
-          element.style.willChange = ''
           element.style.display = ''
           
-          // Remove placeholder
-          if(original.placeholder && original.placeholder.parentNode) {
+          if(original.placeholder?.parentNode) {
             original.placeholder.parentNode.removeChild(original.placeholder)
           }
         }
@@ -542,44 +582,65 @@ export default function PhysicsScene({enabled, onToggle}){
       elementsRef.current = []
       originalPositionsRef.current = []
       wallsRef.current = []
+      activeBodyRef.current = null
 
-      // Stop physics engine
       if(runnerRef.current && engineRef.current && matterRef.current){
         matterRef.current.Runner.stop(runnerRef.current)
         matterRef.current.Engine.clear(engineRef.current)
       }
       
+      mouseConstraintRef.current = null
       matterRef.current = null
     }
-  },[enabled, gravityEnabled, collisionEnabled])
+  },[enabled, collisionEnabled])
+  
+  // Update gravity when toggled
+  useEffect(() => {
+    if(engineRef.current) {
+      engineRef.current.gravity.y = gravityEnabled ? 2.5 : 0
+      
+      // Wake all bodies when gravity changes so they respond
+      if(gravityEnabled && matterRef.current) {
+        elementsRef.current.forEach(({body, isInWorld}) => {
+          if(body && isInWorld) {
+            matterRef.current.Sleeping.set(body, false)
+          }
+        })
+      }
+    }
+  }, [gravityEnabled])
 
-  const resetPositions = () => {
+  const resetPositions = useCallback(() => {
     if(!engineRef.current || !matterRef.current) return
-    elementsRef.current.forEach(({body, element}, i) => {
+    const { Body, Sleeping, World } = matterRef.current
+    
+    elementsRef.current.forEach((data, i) => {
+      const { body, element } = data
       const original = originalPositionsRef.current[i]
       if(original && body){
-        // Reset body position to center of original position
-        matterRef.current.Body.setPosition(body, {
+        // Ensure body is in world
+        if(!data.isInWorld) {
+          World.add(engineRef.current.world, body)
+          data.isInWorld = true
+          element.style.display = ''
+        }
+        
+        // Reset position and state
+        Body.setPosition(body, {
           x: original.x + original.width / 2,
           y: original.y + original.height / 2
         })
-        matterRef.current.Body.setAngle(body, 0)
-        matterRef.current.Body.setVelocity(body, {x: 0, y: 0})
-        matterRef.current.Body.setAngularVelocity(body, 0)
+        Body.setAngle(body, 0)
+        Body.setVelocity(body, {x: 0, y: 0})
+        Body.setAngularVelocity(body, 0)
+        Sleeping.set(body, true) // Put back to sleep
+        data.wasInteracted = false
       }
     })
-  }
-
-  const toggleGravity = () => {
-    setGravityEnabled(prev => !prev)
-    if(engineRef.current){
-      engineRef.current.gravity.y = !gravityEnabled ? 3.5 : 0
-    }
-  }
+  }, [])
 
   if(!enabled) return null
 
-  // Responsive positioning
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
 
   return (
@@ -622,7 +683,8 @@ export default function PhysicsScene({enabled, onToggle}){
               borderRadius: '8px',
               cursor: 'pointer',
               minWidth: 'auto',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              boxShadow: 'none'
             }}
             onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
@@ -641,7 +703,8 @@ export default function PhysicsScene({enabled, onToggle}){
               borderRadius: '8px',
               cursor: 'pointer',
               minWidth: 'auto',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              boxShadow: 'none'
             }}
             onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(220,38,38,1)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(239,68,68,0.9)'}
@@ -672,12 +735,7 @@ export default function PhysicsScene({enabled, onToggle}){
             🔄 Reset Positions
           </button>
           <button 
-            onClick={() => {
-              setGravityEnabled(!gravityEnabled)
-              if(engineRef.current){
-                engineRef.current.gravity.y = !gravityEnabled ? 3.5 : 0
-              }
-            }} 
+            onClick={() => setGravityEnabled(!gravityEnabled)} 
             style={{
               fontSize: '14px', 
               padding: '10px 14px',
@@ -727,7 +785,6 @@ export default function PhysicsScene({enabled, onToggle}){
               const newCollisionState = !collisionEnabled
               setCollisionEnabled(newCollisionState)
               if(engineRef.current && elementsRef.current.length > 0 && matterRef.current){
-                // Update all bodies collision properties
                 elementsRef.current.forEach(({body}) => {
                   if(body){
                     matterRef.current.Body.set(body, 'isSensor', !newCollisionState)
