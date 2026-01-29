@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 
+const basePath = process.env.BASE_PATH || ''
+
 export default function Projects(){
   const [flipped, setFlipped] = useState({})
 
@@ -8,7 +10,7 @@ export default function Projects(){
       id: 'custom-cpu',
       title: 'Custom CPU',
       subtitle: 'Pipelined processor architecture',
-      image: '/images/cpu.jpg',
+      image: `${basePath}/images/cpu.jpg`,
       alt: 'Custom CPU project',
       description: 'Built & verified a pipelined CPU for custom ISA in Verilog/Vivado with a comprehensive testbench. Implemented full instruction pipeline with hazard detection and forwarding.',
       link: 'https://github.com/vhuyngo/CSEN122'
@@ -17,7 +19,7 @@ export default function Projects(){
       id: 'zeronic',
       title: 'ZeroNic',
       subtitle: 'Nicotine cessation device',
-      image: '/images/zeronic.jpg',
+      image: `${basePath}/images/ZeroNic.jpg`,
       alt: 'ZeroNic WeanPen logo',
       description: 'Designed vape pen for quitting nicotine. Led UX research with 5 vapers and 10+ usability tests to create an autoregulating device that helps users gradually reduce nicotine intake.',
       link: 'https://medium.com/human-computer-interaction-at-santa-clara/zeronic-weanpen-the-autoregulating-nicotine-quitting-device-58a8f6261021'
@@ -26,7 +28,7 @@ export default function Projects(){
       id: 'flashalert',
       title: 'FlashAlert',
       subtitle: 'Epileptic content warning system',
-      image: '/images/FlashAlert.png',
+      image: `${basePath}/images/FlashAlert.png`,
       alt: 'FlashAlert project',
       description: 'Developed robust back-end with Python, Flask, and OpenCV. Statistically analyzes video frames to detect flashing patterns and generate timestamps and warnings for potential seizure-inducing content.',
       link: 'https://devpost.com/software/flickersafe'
@@ -35,7 +37,7 @@ export default function Projects(){
       id: 'safeparksf',
       title: 'Safe Park SF',
       subtitle: 'Optimized parking recommendation app',
-      image: '/images/Safe Park SF.png',
+      image: `${basePath}/images/Safe Park SF.png`,
       alt: 'A symbol of a lock on a car, with the words Safe Park SF written below it.',
       description: 'Programmed comprehensive parking web app with customized recommendation index for optimal parking spots. Utilized 3 external APIs including INRIX traffic and SF city parking data to calculate safety scores based on crime rates, cost, and availability.',
       link: 'https://devpost.com/software/safe-parking-sf'
@@ -44,7 +46,7 @@ export default function Projects(){
       id: 'dermai',
       title: 'DermAI',
       subtitle: 'AI skin disease detector',
-      image: '/images/DermAI.png',
+      image: `${basePath}/images/DermAI.png`,
       alt: 'A stunning logo of Derm AI in vivid colors.',
       specialClass: 'DermAI',
       description: 'Trained and fine-tuned TensorFlow deep learning models (InceptionV3 with transfer learning) on 10,000+ medical images to generate differential diagnoses for skin lesions. Integrated with Flask backend and Google Maps API to recommend nearby dermatologists.',
@@ -54,7 +56,7 @@ export default function Projects(){
       id: 'fairway',
       title: 'Fairway',
       subtitle: 'Trucker salary negotiation tool',
-      image: '/images/Fairway.png',
+      image: `${basePath}/images/Fairway.png`,
       alt: 'Fairway logo',
       description: 'Created distance-based compensation algorithm for truckers, scaling salary based on route danger level. Weighted algorithm uses weather, hazards, and annual crash rates to calculate comprehensive danger scores for fair compensation.',
       link: 'https://devpost.com/software/fairway-t09crm'

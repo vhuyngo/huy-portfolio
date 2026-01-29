@@ -1,10 +1,12 @@
 import React from 'react'
 
+const basePath = process.env.BASE_PATH || ''
+
 export default function Profile(){
   return (
     <div className="profile-section">
       <div className="card profile" style={{display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center'}}>
-        <img src="/images/Github-Logo.png" alt="Vinh-Huy Ngo" style={{width:'200px',height:'200px'}} />
+        <img src={`${basePath}/images/Github-Logo.png`} alt="Vinh-Huy Ngo" style={{width:'200px',height:'200px'}} />
         <div style={{maxWidth:'800px'}}>
           <h2 style={{marginBottom:'8px',marginTop:'24px',color:'#fff'}}>Vinh-Huy Ngo</h2>
           <p style={{fontSize:'1.1rem',color:'#fff',fontWeight:'600',marginBottom:'12px'}}>
@@ -18,11 +20,11 @@ export default function Profile(){
               📧 vinhhuyngo@outlook.com
             </a>
             <a href="https://github.com/vhuyngo" target="_blank" rel="noreferrer" style={{display:'flex',alignItems:'center',gap:'8px',textDecoration:'none'}}>
-              <img src="/images/Github-Logo.png" alt="GitHub" style={{width:'24px',height:'24px',filter:'brightness(0) invert(1)'}} />
+              <img src={`${basePath}/images/Github-Logo.png`} alt="GitHub" style={{width:'24px',height:'24px',filter:'brightness(0) invert(1)'}} />
               <span style={{color:'#fff',fontSize:'1rem'}}>GitHub</span>
             </a>
             <a href="https://linkedin.com/in/vinh-huy-ngo" target="_blank" rel="noreferrer" style={{display:'flex',alignItems:'center',gap:'8px',textDecoration:'none'}}>
-              <img src="/images/LinkedIn-Logo.png" alt="LinkedIn" style={{width:'24px',height:'24px',filter:'brightness(0) invert(1)'}} />
+              <img src={`${basePath}/images/LinkedIn-Logo.png`} alt="LinkedIn" style={{width:'24px',height:'24px',filter:'brightness(0) invert(1)'}} />
               <span style={{color:'#fff',fontSize:'1rem'}}>LinkedIn</span>
             </a>
           </div>

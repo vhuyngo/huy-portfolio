@@ -1,5 +1,7 @@
 import { Html, Head, Main, NextScript } from 'next/document'
 
+const basePath = process.env.BASE_PATH || ''
+
 export default function Document(){
   return (
     <Html lang="en">
@@ -8,7 +10,7 @@ export default function Document(){
         <meta charSet="UTF-8" />
         <meta name="keywords" content="web development, portfolio, skills, software engineering, backend, frontend, vinh-huy ngo, huy ngo, huy, cybersecurity, Santa Clara University" />
         <meta property="og:type" content="website" />
-        <link rel="icon" type="image/png" href="/images/Github-Logo.png" />
+        <link rel="icon" type="image/png" href={`${basePath}/images/Github-Logo.png`} />
       </Head>
       <body>
         <Main />
