@@ -1,0 +1,97 @@
+name: Build, Obfuscate & Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js static export
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Install obfuscator
+        run: npm install -g javascript-obfuscator
+
+      - name: Obfuscate JavaScript files
+        run: |
+          # Find and obfuscate all JS files in the out directory
+          find out -name "*.js" -type f | while read file; do
+            echo "Obfuscating: $file"
+            javascript-obfuscator "$file" \
+              --output "$file" \
+              --compact true \
+              --control-flow-flattening true \
+              --control-flow-flattening-threshold 0.5 \
+              --dead-code-injection false \
+              --debug-protection false \
+              --disable-console-output false \
+              --identifier-names-generator hexadecimal \
+              --rename-globals false \
+              --self-defending false \
+              --simplify true \
+              --split-strings true \
+              --split-strings-chunk-length 5 \
+              --string-array true \
+              --string-array-calls-transform true \
+              --string-array-encoding base64 \
+              --string-array-index-shift true \
+              --string-array-rotate true \
+              --string-array-shuffle true \
+              --string-array-wrappers-count 2 \
+              --string-array-wrappers-type function \
+              --string-array-threshold 0.75 \
+              --transform-object-keys true \
+              --unicode-escape-sequence false
+          done
+
+      - name: Create README for gh-pages
+        run: |
+          cat > out/README.md << 'EOF'
+          # Huy's Portfolio - Deployed Version
+
+          This branch contains the built and obfuscated production version of the portfolio.
+
+          **Live Site:** [https://vhuyngo.github.io/huy-portfolio/](https://vhuyngo.github.io/huy-portfolio/)
+
+          ---
+
+          > This is an auto-generated deployment branch.
+          > For source code, please check the [main branch](https://github.com/vhuyngo/huy-portfolio/tree/main).
+
+          Last deployed: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          EOF
+
+      - name: Add .nojekyll file
+        run: touch out/.nojekyll
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./out
+          publish_branch: gh-pages
+          force_orphan: true
+          commit_message: "Deploy obfuscated build - ${{ github.sha }}"
