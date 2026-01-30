@@ -367,20 +367,6 @@ body.physics-active {
   position: relative;
 }
 
-/* Blur overlay for physics sandbox mode */
-#physics-blur-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.02);
-  backdrop-filter: blur(1.5px);
-  -webkit-backdrop-filter: blur(1.5px);
-  pointer-events: none;
-  z-index: 50;
-  transition: opacity 0.3s ease;
-}
 
 /* Ensure physics cards are above blur but below controls */
 body.physics-active .card {
@@ -413,10 +399,20 @@ body.physics-active .flip-card-back {
   pointer-events: none;
 }
 
-/* Ensure footer and header stay in place and remain interactive */
-body.physics-active footer,
+/* Header stays sticky at top during physics */
 body.physics-active header {
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  pointer-events: auto;
+}
+
+/* Footer stays fixed at bottom during physics */
+body.physics-active footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   z-index: 1000;
   pointer-events: auto;
 }
@@ -603,28 +599,27 @@ footer {
   bottom: 0;
   width: 100%;
   background: #faf8f5;
-  font-size: 16px;
+  font-size: 13px;
   margin-top: auto;
-  padding: 16px 0 8px;
+  padding: 8px 0 6px;
   border-top: none;
-  box-shadow: 0 -4px 16px rgba(30, 58, 138, 0.15);
+  box-shadow: 0 -1px 6px rgba(30, 58, 138, 0.08);
   flex-shrink: 0;
   z-index: 1000;
 }
 footer h1 {
   text-align: center;
-  padding: 0 20px;
-  margin-bottom: 12px;
-  font-size: 2rem;
+  margin: 0 0 4px 0;
+  font-size: 0.9rem;
   color: var(--accent);
-  font-weight: 700;
+  font-weight: 600;
 }
 footer .contact-info {
   display: flex;
   margin: 0 auto;
   max-width: 1400px;
-  gap: 50px;
-  padding: 0 40px;
+  gap: 20px;
+  padding: 0 16px;
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
@@ -634,30 +629,22 @@ footer .contact-info {
 footer .contact-info .hyperlink {
   display: flex;
   align-items: center;
-  margin: 6px 0;
   text-decoration: none;
   width: fit-content;
-  transition: transform 0.2s;
+  transition: opacity 0.2s;
 }
 footer .contact-info .hyperlink:hover {
-  transform: translateX(6px);
+  opacity: 0.7;
 }
 footer .contact-info img {
-  height: 32px;
-  width: 32px;
-  margin-right: 12px;
+  height: 18px;
+  width: 18px;
+  margin-right: 5px;
   object-fit: contain;
-  filter: none;
 }
 footer .contact-info p {
   color: var(--accent);
-  font-size: 1.15rem;
+  font-size: 0.8rem;
   margin: 0;
   font-weight: 500;
-}
-footer #copyright {
-  padding: 12px;
-  color: var(--muted);
-  text-align: center;
-  font-size: 0.95rem;
 }

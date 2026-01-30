@@ -24,31 +24,6 @@ export default function PhysicsScene({enabled, onToggle}){
     let clickHandler = null
     let scrollHandler = null
 
-    // Add blur overlay effect for sandbox mode
-    const createBlurOverlay = () => {
-      const existingOverlay = document.getElementById('physics-blur-overlay')
-      if(existingOverlay) existingOverlay.remove()
-      
-      const overlay = document.createElement('div')
-      overlay.id = 'physics-blur-overlay'
-      overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(0, 0, 0, 0.02);
-        backdrop-filter: blur(1.5px);
-        -webkit-backdrop-filter: blur(1.5px);
-        pointer-events: none;
-        z-index: 50;
-        transition: opacity 0.3s ease;
-      `
-      document.body.appendChild(overlay)
-    }
-    
-    createBlurOverlay()
-
     const init = async ()=>{
       const Matter = await import('matter-js')
       matterRef.current = Matter
@@ -203,19 +178,22 @@ export default function PhysicsScene({enabled, onToggle}){
       // Create boundary walls
       const thickness = 100
       const viewWidth = window.innerWidth
+      const viewportHeight = window.innerHeight
       const docHeight = document.documentElement.scrollHeight
       
       let navbarBottom = 80
-      let footerTop = docHeight - 100
+      let footerHeight = 50
       
       if(navbarElement){
         navbarBottom = navbarElement.offsetHeight
       }
       
       if(footerElement){
-        const footerRect = footerElement.getBoundingClientRect()
-        footerTop = window.scrollY + footerRect.top
+        footerHeight = footerElement.offsetHeight
       }
+      
+      // Bottom wall position: viewport bottom minus footer height
+      const bottomWallY = window.scrollY + viewportHeight - footerHeight
       
       const wallOptions = { 
         isStatic: true,
@@ -233,7 +211,7 @@ export default function PhysicsScene({enabled, onToggle}){
         label: 'topWall'
       })
       
-      const bottomWall = Bodies.rectangle(viewWidth/2, footerTop + thickness/2, viewWidth * 3, thickness, {
+      const bottomWall = Bodies.rectangle(viewWidth/2, bottomWallY + thickness/2, viewWidth * 3, thickness, {
         ...wallOptions,
         label: 'bottomWall'
       })
@@ -258,68 +236,29 @@ export default function PhysicsScene({enabled, onToggle}){
         if(!engineRef.current || !matterRef.current || !mounted) return
         
         const currentScrollY = window.scrollY
+        const viewportHeight = window.innerHeight
         const navbarHeight = navbarElement ? navbarElement.offsetHeight : 80
+        const footerHeight = footerElement ? footerElement.offsetHeight : 50
         
-        // Update top wall
+        // Update top wall - follows viewport top + navbar
         Body.setPosition(wallsRef.current[0], { 
           x: viewWidth/2, 
           y: currentScrollY + navbarHeight - thickness/2
         })
         
-        // Update bottom wall
-        if(footerElement) {
-          const footerRect = footerElement.getBoundingClientRect()
-          Body.setPosition(wallsRef.current[1], { 
-            x: viewWidth/2, 
-            y: currentScrollY + footerRect.top + thickness/2
-          })
-        }
-      }
-      
-      // Viewport-based body management
-      const updateViewportBodies = () => {
-        if(!mounted || !matterRef.current || !engineRef.current) return
-        
-        const currentScrollY = window.scrollY
-        const viewportHeight = window.innerHeight
-        const buffer = viewportHeight * 0.5 // Load bodies slightly before they enter viewport
-        const viewportTop = currentScrollY - buffer
-        const viewportBottom = currentScrollY + viewportHeight + buffer
-        
-        elementsRef.current.forEach((data) => {
-          const { body, element, isInWorld } = data
-          const original = originalPositionsRef.current[data.index]
-          
-          // Use CURRENT body position to determine visibility
-          const bodyY = body.position.y
-          const bodyTop = bodyY - original.height / 2
-          const bodyBottom = bodyY + original.height / 2
-          
-          const isInViewport = bodyBottom >= viewportTop && bodyTop <= viewportBottom
-          
-          if(isInViewport && !isInWorld) {
-            // Add body back to world
-            World.add(engineRef.current.world, body)
-            data.isInWorld = true
-            element.style.display = ''
-          } else if(!isInViewport && isInWorld && !activeBodyRef.current) {
-            // Remove body from world (but only if not being dragged)
-            // Don't remove if object is being dragged
-            if(body !== activeBodyRef.current) {
-              World.remove(engineRef.current.world, body)
-              data.isInWorld = false
-              element.style.display = 'none'
-            }
-          }
+        // Update bottom wall - follows viewport bottom - footer (since footer is fixed)
+        Body.setPosition(wallsRef.current[1], { 
+          x: viewWidth/2, 
+          y: currentScrollY + viewportHeight - footerHeight + thickness/2
         })
       }
       
+      // Simple scroll handler - just update walls
       let scrollFrame = null
       scrollHandler = () => {
         if(!scrollFrame) {
           scrollFrame = requestAnimationFrame(() => {
             updateWallsOnScroll()
-            updateViewportBodies()
             scrollFrame = null
           })
         }
@@ -427,8 +366,8 @@ export default function PhysicsScene({enabled, onToggle}){
         setTimeout(() => indicator.remove(), 600)
         
         // Apply explosion force and wake all bodies
-        elementsRef.current.forEach(({body, isInWorld}) => {
-          if(body && isInWorld){
+        elementsRef.current.forEach(({body}) => {
+          if(body){
             Sleeping.set(body, false)
             const dx = body.position.x - clickX
             const dy = body.position.y - clickY
@@ -464,12 +403,15 @@ export default function PhysicsScene({enabled, onToggle}){
         const currentScrollY = window.scrollY
         const viewportHeight = window.innerHeight
         const navbarHeight = navbarElement ? navbarElement.offsetHeight : 80
-        const footerRect = footerElement ? footerElement.getBoundingClientRect() : null
-        const footerTopAbs = footerRect ? (currentScrollY + footerRect.top) : (document.documentElement.scrollHeight - 200)
+        const footerHeight = footerElement ? footerElement.offsetHeight : 50
         
-        elementsRef.current.forEach(({element, body, isInWorld}, i) => {
-          if(!isInWorld) return
-          
+        // Calculate boundaries in absolute coordinates
+        // Top boundary: current scroll + navbar height
+        // Bottom boundary: current scroll + viewport - footer (since footer is fixed at bottom)
+        const minTopAbs = currentScrollY + navbarHeight + 5
+        const maxBottomAbs = currentScrollY + viewportHeight - footerHeight - 5
+        
+        elementsRef.current.forEach(({element, body}, i) => {
           const {x, y} = body.position
           const angle = body.angle
           const original = originalPositionsRef.current[i]
@@ -479,8 +421,8 @@ export default function PhysicsScene({enabled, onToggle}){
           let top = y - original.height / 2
           
           // Boundary constraints
-          const minTop = navbarHeight + 5
-          const maxTop = footerTopAbs - original.height - 5
+          const minTop = minTopAbs
+          const maxTop = maxBottomAbs - original.height
           const minLeft = 5
           const maxLeft = window.innerWidth - original.width - 5
           
@@ -543,8 +485,6 @@ export default function PhysicsScene({enabled, onToggle}){
       if(scrollHandler) window.removeEventListener('scroll', scrollHandler)
       
       document.body.classList.remove('physics-active')
-      const blurOverlay = document.getElementById('physics-blur-overlay')
-      if(blurOverlay) blurOverlay.remove()
       
       // Restore hidden elements
       hiddenSectionsRef.current.forEach(({element, originalVisibility, originalPointerEvents}) => {
@@ -601,8 +541,8 @@ export default function PhysicsScene({enabled, onToggle}){
       
       // Wake all bodies when gravity changes so they respond
       if(gravityEnabled && matterRef.current) {
-        elementsRef.current.forEach(({body, isInWorld}) => {
-          if(body && isInWorld) {
+        elementsRef.current.forEach(({body}) => {
+          if(body) {
             matterRef.current.Sleeping.set(body, false)
           }
         })
@@ -612,19 +552,12 @@ export default function PhysicsScene({enabled, onToggle}){
 
   const resetPositions = useCallback(() => {
     if(!engineRef.current || !matterRef.current) return
-    const { Body, Sleeping, World } = matterRef.current
+    const { Body, Sleeping } = matterRef.current
     
     elementsRef.current.forEach((data, i) => {
-      const { body, element } = data
+      const { body } = data
       const original = originalPositionsRef.current[i]
       if(original && body){
-        // Ensure body is in world
-        if(!data.isInWorld) {
-          World.add(engineRef.current.world, body)
-          data.isInWorld = true
-          element.style.display = ''
-        }
-        
         // Reset position and state
         Body.setPosition(body, {
           x: original.x + original.width / 2,
@@ -634,7 +567,6 @@ export default function PhysicsScene({enabled, onToggle}){
         Body.setVelocity(body, {x: 0, y: 0})
         Body.setAngularVelocity(body, 0)
         Sleeping.set(body, true) // Put back to sleep
-        data.wasInteracted = false
       }
     })
   }, [])
