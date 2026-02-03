@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import {useRouter} from 'next/router'
 
-export default function Header({physicsEnabled, onTogglePhysics}){
+export default function Header(){
   const scrollTo = (id) => {
     const element = document.getElementById(id)
     if(element) {
@@ -13,25 +13,6 @@ export default function Header({physicsEnabled, onTogglePhysics}){
     <header>
       <div className="top-ribbon">
         <h1>Huy's Playground</h1>
-        
-        {/* Apple-style Physics Toggle */}
-        <div className="physics-toggle-container">
-          <div className="physics-label-wrapper">
-            <div className="physics-label">PHYSICS</div>
-            <div className="physics-toggle-row">
-              <span className="toggle-label">OFF</span>
-              <label className="physics-toggle-switch">
-                <input 
-                  type="checkbox" 
-                  checked={physicsEnabled} 
-                  onChange={onTogglePhysics}
-                />
-                <span className="toggle-slider"></span>
-              </label>
-              <span className="toggle-label">ON</span>
-            </div>
-          </div>
-        </div>
 
         <nav className="nav-links">
           <a onClick={() => scrollTo('about')}>About</a>

@@ -1,24 +1,12 @@
-import React, {useState} from 'react'
+import React from 'react'
 import Head from 'next/head'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Profile from '../components/Profile'
 import Projects from '../components/Portfolio'
 import Hobbies from '../components/Hobbies'
-import QuickContact from '../components/QuickContact'
-import PhysicsScene from '../components/PhysicsScene'
 
 export default function Home(){
-  const [physicsEnabled,setPhysicsEnabled] = useState(false)
-
-  const startPhysics = () => {
-    setPhysicsEnabled(true)
-  }
-
-  const togglePhysics = () => {
-    setPhysicsEnabled(prev => !prev)
-  }
-
   return (
     <>
       <Head>
@@ -28,7 +16,7 @@ export default function Home(){
         <meta property="og:description" content="It's about time." />
       </Head>
       <div className="container">
-        <Header physicsEnabled={physicsEnabled} onTogglePhysics={togglePhysics} />
+        <Header />
         <main>
         <Profile />
         
@@ -41,8 +29,6 @@ export default function Home(){
         <Projects />
 
         <Hobbies />
-
-        <PhysicsScene enabled={physicsEnabled} onToggle={togglePhysics} />
       </main>
       <Footer />
     </div>

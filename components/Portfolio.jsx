@@ -64,8 +64,6 @@ export default function Projects(){
   ]
 
   const handleFlip = (id) => {
-    // Disable flipping when physics is active
-    if(document.body.classList.contains('physics-active')) return
     setFlipped(prev => ({ ...prev, [id]: !prev[id] }))
   }
 

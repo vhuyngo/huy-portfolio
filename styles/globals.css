@@ -183,12 +183,6 @@ h3 {
   margin-bottom: 12px;
   padding: 8px 0;
 }
-.physics-canvas {
-  width: 100%;
-  height: 480px;
-  background: #071122;
-  border-radius: 12px;
-}
 button {
   background: var(--accent);
   color: #fff;
@@ -357,71 +351,6 @@ a:hover {
   }
 }
 
-/* Physics mode: prevent text selection when dragging */
-body.physics-active {
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  overflow-x: hidden;
-  position: relative;
-}
-
-
-/* Ensure physics cards are above blur but below controls */
-body.physics-active .card {
-  z-index: 100 !important;
-  pointer-events: auto;
-  will-change: transform;
-  backface-visibility: hidden;
-}
-
-body.physics-active .portfolio-item,
-body.physics-active .hobby-item {
-  z-index: 100 !important;
-  pointer-events: auto;
-  will-change: transform;
-  backface-visibility: hidden;
-}
-
-/* Disable flip card behavior in physics mode */
-body.physics-active .flip-card {
-  pointer-events: auto;
-  cursor: grab !important;
-}
-
-body.physics-active .flip-card-inner {
-  pointer-events: none;
-}
-
-body.physics-active .flip-card-front,
-body.physics-active .flip-card-back {
-  pointer-events: none;
-}
-
-/* Header stays sticky at top during physics */
-body.physics-active header {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  pointer-events: auto;
-}
-
-/* Footer stays fixed at bottom during physics */
-body.physics-active footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-  pointer-events: auto;
-}
-
-/* Keep physics control buttons interactive */
-body.physics-active button {
-  pointer-events: auto;
-}
-
 /* --- Header styles --- */
 header {
   position: sticky;
@@ -453,103 +382,6 @@ header {
     gap: 16px;
     padding: 0 20px;
   }
-}
-
-/* Apple-style Physics Toggle */
-.physics-toggle-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-}
-@media (max-width: 768px) {
-  .physics-toggle-container {
-    position: static;
-    transform: none;
-  }
-}
-
-.physics-label-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.physics-label {
-  color: #1e3a8a;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  text-align: center;
-}
-
-.physics-toggle-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.toggle-label {
-  color: #1e3a8a;
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
-.physics-toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 51px;
-  height: 31px;
-  cursor: pointer;
-}
-
-.physics-toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.toggle-slider {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(120, 120, 128, 0.32);
-  border-radius: 31px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.toggle-slider:before {
-  position: absolute;
-  content: "";
-  height: 27px;
-  width: 27px;
-  left: 2px;
-  bottom: 2px;
-  background-color: white;
-  border-radius: 50%;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow:
-    0 3px 8px rgba(0, 0, 0, 0.15),
-    0 1px 1px rgba(0, 0, 0, 0.16),
-    0 3px 1px rgba(0, 0, 0, 0.1);
-}
-
-.physics-toggle-switch input:checked + .toggle-slider {
-  background-color: #34c759;
-}
-
-.physics-toggle-switch input:checked + .toggle-slider:before {
-  transform: translateX(20px);
-}
-
-.physics-toggle-switch input:focus + .toggle-slider {
-  box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.3);
 }
 
 .top-ribbon h1 {
