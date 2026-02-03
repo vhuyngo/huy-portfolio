@@ -18,7 +18,7 @@ export default function Header(){
           <a onClick={() => scrollTo('about')}>About</a>
           <a onClick={() => scrollTo('projects')}>Projects</a>
           <a onClick={() => scrollTo('hobbies')}>Hobbies</a>
-          <a href="https://drive.google.com/file/d/1FE-SaQtDVyGsdDgLt31uC2CMLEVef0xY/view?usp=sharing" target="_blank" rel="noreferrer">Resume</a>
+          <a href="https://drive.google.com/file/d/1mX6npHlWCj3WwvvuHnz4yLLQJDqIsJ9j/view?usp=sharing" target="_blank" rel="noreferrer">Resume</a>
         </nav>
       </div>
     </header>
