@@ -5,27 +5,76 @@ const basePath = process.env.BASE_PATH || ''
 export default function Profile(){
   return (
     <div className="profile-section">
-      <div className="card profile" style={{display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center'}}>
-        <img src={`${basePath}/images/Github-Logo.png`} alt="Vinh-Huy Ngo" style={{width:'200px',height:'200px'}} />
-        <div style={{maxWidth:'800px'}}>
-          <h2 style={{marginBottom:'8px',marginTop:'24px',color:'#fff'}}>Vinh-Huy Ngo</h2>
-          <p style={{fontSize:'1.1rem',color:'#fff',fontWeight:'600',marginBottom:'12px'}}>
+      <div className="profile-content">
+        <div className="profile-photo-wrapper">
+          <img
+            src={`${basePath}/images/Huy Professional Photo Square.jpeg`}
+            alt="Vinh-Huy Ngo"
+            className="profile-photo"
+          />
+        </div>
+        <div className="profile-info">
+          <h2 className="profile-name">Vinh-Huy Ngo</h2>
+          <p className="profile-title">
             Aspiring Software Engineer | Cybersecurity Enthusiast
           </p>
-          <p style={{marginBottom:'12px',color:'#f3f4f6'}}>
-            Santa Clara University • B.S. Computer Science & Engineering • GPA 3.84 • Expected Jun. 2026
+          <p className="profile-description">
+            Santa Clara University • B.S. Computer Science & Engineering
           </p>
-          <div style={{display:'flex',gap:'24px',flexWrap:'wrap',marginTop:'24px',justifyContent:'center',alignItems:'center'}}>
-            <a href="mailto:vinhhuyngo@outlook.com" style={{color:'#fff',display:'flex',alignItems:'center',gap:'8px',fontSize:'1rem'}}>
-              📧 vinhhuyngo@outlook.com
+          <div className="social-links">
+            <a
+              href="mailto:vinhhuyngo@outlook.com"
+              className="social-link"
+              aria-label="Email"
+              title="Email"
+            >
+              <img
+                src={`${basePath}/images/Email-Icon.png`}
+                alt="Email"
+                className="social-icon"
+              />
             </a>
-            <a href="https://github.com/vhuyngo" target="_blank" rel="noreferrer" style={{display:'flex',alignItems:'center',gap:'8px',textDecoration:'none'}}>
-              <img src={`${basePath}/images/Github-Logo.png`} alt="GitHub" style={{width:'24px',height:'24px',filter:'brightness(0) invert(1)'}} />
-              <span style={{color:'#fff',fontSize:'1rem'}}>GitHub</span>
+            <a
+              href="https://github.com/vhuyngo"
+              target="_blank"
+              rel="noreferrer"
+              className="social-link"
+              aria-label="GitHub"
+              title="GitHub"
+            >
+              <img
+                src={`${basePath}/images/Github-Logo.png`}
+                alt="GitHub"
+                className="social-icon"
+              />
             </a>
-            <a href="https://linkedin.com/in/vinh-huy-ngo" target="_blank" rel="noreferrer" style={{display:'flex',alignItems:'center',gap:'8px',textDecoration:'none'}}>
-              <img src={`${basePath}/images/LinkedIn-Logo.png`} alt="LinkedIn" style={{width:'24px',height:'24px',filter:'brightness(0) invert(1)'}} />
-              <span style={{color:'#fff',fontSize:'1rem'}}>LinkedIn</span>
+            <a
+              href="https://www.linkedin.com/in/vinh-huy-ngo/"
+              target="_blank"
+              rel="noreferrer"
+              className="social-link"
+              aria-label="LinkedIn"
+              title="LinkedIn"
+            >
+              <img
+                src={`${basePath}/images/LinkedIn-Logo.png`}
+                alt="LinkedIn"
+                className="social-icon"
+              />
+            </a>
+            <a
+              href="https://devpost.com/vinhhuyngo"
+              target="_blank"
+              rel="noreferrer"
+              className="social-link"
+              aria-label="Devpost"
+              title="Devpost"
+            >
+              <img
+                src={`${basePath}/images/Devpost-Logo.png`}
+                alt="Devpost"
+                className="social-icon"
+              />
             </a>
           </div>
         </div>

@@ -1,7 +1,6 @@
 import React from 'react'
 import Head from 'next/head'
 import Header from '../components/Header'
-import Footer from '../components/Footer'
 import Profile from '../components/Profile'
 import Projects from '../components/Portfolio'
 import Hobbies from '../components/Hobbies'
@@ -19,18 +18,11 @@ export default function Home(){
         <Header />
         <main>
         <Profile />
-        
-        <section id="about" className="card section">
-          <h2>About</h2>
-          <p>Hi! My name is Huy (pronounced H-wee). I am an aspiring software engineer with strong fundamentals in algorithms, operating systems, networks, and compilers.</p>
-          <p style={{marginTop:12}}>Experienced in building full-stack applications, backend systems with Flask and Node.js, and working with computer vision and machine learning. Skilled in C, Python, JavaScript, and C++.</p>
-        </section>
 
         <Projects />
 
         <Hobbies />
       </main>
-      <Footer />
     </div>
     </>
   )
